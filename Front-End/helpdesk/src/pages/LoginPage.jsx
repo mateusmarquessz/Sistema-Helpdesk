@@ -4,16 +4,36 @@ import { useNavigate } from "react-router-dom";
 export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [senha, setSenha] = useState("");
+  const [error, setError] = useState(null);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    console.log("Login:", { email, password });
-    navigate("/dashboard");
+    try {
+      const response = await axios.post("http://localhost:8080/api/usuarios/login", {
+        email,
+        senha,
+      });
+    
+
+      localStorage.setItem("token", response.data.token);
+      onLoginSuccess(response.data.role, response.data.token);
+      navigate('/dashboard');
+
+    } catch (error) {
+      if (error.response) {
+        setError(error.response.data.message || 'Erro ao fazer login');
+      } else if (error.request) {
+        setError('Erro de comunicação com o servidor');
+      } else {
+        setError('Ocorreu um erro inesperado. Tente novamente.');
+      }
+      console.error('Erro ao fazer login:', error);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-blue-900">
       <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Entrar</h2>
         <form onSubmit={handleLogin} className="space-y-4">
@@ -28,8 +48,8 @@ export default function LoginPage() {
           <input
             type="password"
             placeholder="Senha"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
             className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
             required
           />

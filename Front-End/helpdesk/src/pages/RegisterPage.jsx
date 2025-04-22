@@ -3,26 +3,48 @@ import { useNavigate } from "react-router-dom";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [senha, setSenha] = useState("");
+  const [error, setError] = useState(null);
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    console.log("Registro:", { name, email, password });
-    navigate("/login");
+    setError(null);
+
+    try {
+      const response = await fetch("http://localhost:8080/api/usuarios/cadastro", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nome,
+          email,
+          senha,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Erro ao registrar");
+      }
+      navigate("/login");
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-blue-900">
       <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Cadastrar</h2>
         <form onSubmit={handleRegister} className="space-y-4">
           <input
             type="text"
             placeholder="Nome"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
             className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
             required
           />
@@ -37,8 +59,8 @@ export default function RegisterPage() {
           <input
             type="password"
             placeholder="Senha"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
             className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
             required
           />
@@ -49,6 +71,9 @@ export default function RegisterPage() {
             Cadastrar
           </button>
         </form>
+        {error && (
+          <p className="mt-4 text-center text-red-500 text-sm">{error}</p>
+        )}
         <p className="mt-4 text-center text-sm">
           Já tem uma conta?{" "}
           <a href="/login" className="text-blue-500 hover:underline">

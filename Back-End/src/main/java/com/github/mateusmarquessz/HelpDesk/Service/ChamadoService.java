@@ -7,12 +7,15 @@ import com.github.mateusmarquessz.HelpDesk.Model.Chamado;
 import com.github.mateusmarquessz.HelpDesk.Model.Usuario;
 import com.github.mateusmarquessz.HelpDesk.Repository.ChamadoRepository;
 import com.github.mateusmarquessz.HelpDesk.Repository.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import javax.management.ConstructorParameters;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@RequiredArgsConstructor
 @Service
 public class ChamadoService {
 
@@ -20,10 +23,6 @@ public class ChamadoService {
     private final UsuarioRepository usuarioRepository;
     private final AtomicInteger indiceRoundRobin = new AtomicInteger(0);
 
-    public ChamadoService(ChamadoRepository chamadoRepository, UsuarioRepository usuarioRepository) {
-        this.chamadoRepository = chamadoRepository;
-        this.usuarioRepository = usuarioRepository;
-    }
 
     public Chamado criarChamado(CriarChamadoDTO dto, Usuario cliente) {
         Chamado chamado = new Chamado();
