@@ -10,7 +10,6 @@ import com.github.mateusmarquessz.HelpDesk.Repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import javax.management.ConstructorParameters;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,12 +32,12 @@ public class ChamadoService {
         chamado.setCliente(cliente);
         chamado.setCriadoEm(LocalDateTime.now());
         chamado.setAtualizadoEm(LocalDateTime.now());
-
         Usuario tecnicoSelecionado = buscarTecnicoRoundRobin();
         chamado.setTecnico(tecnicoSelecionado);
 
         return chamadoRepository.save(chamado);
     }
+
 
     public void atribuirTecnico(Long chamadoId, Integer tecnicoId) {
         Chamado chamado = chamadoRepository.findById(chamadoId)
@@ -56,6 +55,14 @@ public class ChamadoService {
         chamadoRepository.save(chamado);
     }
 
+    public List<Chamado> listarChamadosDoCliente(Integer clienteId) {
+        return chamadoRepository.findByClienteId(clienteId);
+    }
+
+    public List<Chamado> listarTodosOsChamados(){
+        return chamadoRepository.findAll();
+    }
+
     public List<Chamado> listarChamadosDoTecnico(Integer tecnicoId) {
         return chamadoRepository.findByTecnicoId(tecnicoId);
     }
@@ -66,7 +73,28 @@ public class ChamadoService {
             throw new RuntimeException("Nenhum técnico disponível para atribuição");
         }
 
-        int index = indiceRoundRobin.getAndUpdate(i -> (i + 1) % tecnicos.size());
-        return tecnicos.get(index);
+        int totalTecnicos = tecnicos.size();
+        int startIndex = indiceRoundRobin.get();
+        int currentIndex = startIndex;
+
+        for (int i = 0; i < totalTecnicos; i++) {
+            Usuario tecnico = tecnicos.get(currentIndex);
+            boolean tecnicoLivre = chamadoRepository.countByTecnicoAndStatusIn(
+                    tecnico,
+                    List.of(StatusChamado.ABERTO, StatusChamado.EM_ATENDIMENTO)
+            ) == 0;
+
+            if (tecnicoLivre) {
+                indiceRoundRobin.set((currentIndex + 1) % totalTecnicos);
+                return tecnico;
+            }
+
+            currentIndex = (currentIndex + 1) % totalTecnicos;
+        }
+
+        Usuario tecnicoFallback = tecnicos.get(startIndex);
+        indiceRoundRobin.set((startIndex + 1) % totalTecnicos);
+        return tecnicoFallback;
     }
+
 }

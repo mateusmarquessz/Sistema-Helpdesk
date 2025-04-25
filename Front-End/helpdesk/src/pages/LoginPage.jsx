@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios"; 
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -14,12 +15,21 @@ export default function LoginPage() {
         email,
         senha,
       });
-    
+      
+      const { token, role, id } = response.data;
+      localStorage.setItem("token", token);
+      localStorage.setItem("id", id);
 
-      localStorage.setItem("token", response.data.token);
-      onLoginSuccess(response.data.role, response.data.token);
-      navigate('/dashboard');
-
+      if (role === "CLIENT") {
+        navigate("/dashboard/cliente");
+      } else if (role === "TECNICO") {
+        navigate("/dashboard/tecnico");
+      } else if (role === "ADMIN") {
+        navigate("/dashboard/admin");
+      } else {
+        setError("Tipo de usuário não reconhecido.");
+      }
+  
     } catch (error) {
       if (error.response) {
         setError(error.response.data.message || 'Erro ao fazer login');
@@ -31,6 +41,7 @@ export default function LoginPage() {
       console.error('Erro ao fazer login:', error);
     }
   };
+  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-blue-900">

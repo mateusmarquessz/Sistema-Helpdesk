@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.github.mateusmarquessz.HelpDesk.Enum.Role;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -23,16 +24,6 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
-
-    public Usuario getUsuarioByEmail(String email) {
-        return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado com email: " + email));
-    }
-
-    public Usuario getUsuarioById(Integer id) {
-        return usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado com ID: " + id));
-    }
 
     public ResponseEntity<ResponseDTO> login(LoginRequestDTO body) {
         Usuario usuario = usuarioRepository.findByEmail(body.email())
@@ -62,6 +53,27 @@ public class UsuarioService {
 
         String token = tokenService.generateToken(newUser);
         return ResponseEntity.ok(new ResponseDTO(newUser.getNome(), token, newUser.getId(), newUser.getRole()));
+    }
+
+    public Usuario getUsuarioById(Integer id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado com id: " + id));
+    }
+
+
+
+    public List<Usuario> getAllUsuarios() {
+        return usuarioRepository.findAll();
+    }
+
+    public Usuario AtualizaRole(Integer usuarioId,Role novoRole) {
+        Usuario usuario = usuarioRepository.
+                findById(usuarioId).
+                orElseThrow(() -> new RuntimeException("Usuario nao encontrado"));
+
+        usuario.setRole(novoRole);
+
+        return usuarioRepository.save(usuario);
     }
 
 }

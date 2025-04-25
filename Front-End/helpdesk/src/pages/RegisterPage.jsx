@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios"; // Importando o Axios
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -13,25 +14,14 @@ export default function RegisterPage() {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:8080/api/usuarios/cadastro", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nome,
-          email,
-          senha,
-        }),
+      const response = await axios.post("http://localhost:8080/api/usuarios/cadastro", {
+        nome,
+        email,
+        senha,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erro ao registrar");
-      }
       navigate("/login");
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || "Erro ao registrar");
     }
   };
 
