@@ -45,6 +45,14 @@ public class UsuarioController {
     //Admin Login
     //admin@dominio.com
     //senhaSegura123
+
+    //Client Login
+    //teste@teste.com
+    //123
+
+    //Tecnico Login
+    //teste1@teste.com
+    //123
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Usuario>> getAllUsuarios() {

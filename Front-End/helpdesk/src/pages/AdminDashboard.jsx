@@ -1,38 +1,71 @@
 import axios from "axios";
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function AdminDashboard() {
   const [usuarios, setUsuarios] = useState([]);
   const [chamados, setChamados] = useState([]);
   const [rolesTemp, setRolesTemp] = useState({});
-  const [activeTab, setActiveTab] = useState('usuarios');
+  const [relatorio, setRelatorio] = useState({
+    statusCount: {},
+    prioridadeCount: {},
+  });
+  const [selectedPrioridade, setSelectedPrioridade] = useState("");
+  const [activeTab, setActiveTab] = useState("usuarios");
   const [selectedTecnico, setSelectedTecnico] = useState(null);
   const [selectedChamado, setSelectedChamado] = useState(null);
   const navigate = useNavigate();
 
+  const [relatorioSLA, setRelatorioSLA] = useState(null);
+  const [inicio, setInicio] = useState("");
+  const [fim, setFim] = useState("");
+  const [loading, setLoading] = useState(false);
+
+   // Função para gerar o relatório SLA
+   const gerarRelatorio = async () => {
+    if (!inicio || !fim) {
+      alert("Por favor, preencha ambos os campos de data.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/sla?inicio=${inicio}&fim=${fim}`,
+      );
+      setRelatorioSLA(response.data);
+    } catch (error) {
+      console.error("Erro ao gerar relatório SLA", error);
+      alert("Erro ao gerar relatório.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchUsuarios = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/usuarios');
+      const response = await axios.get("http://localhost:8080/api/usuarios");
       setUsuarios(response.data);
       const rolesIniciais = {};
-      response.data.forEach(user => {
+      response.data.forEach((user) => {
         rolesIniciais[user.id] = user.role;
       });
       setRolesTemp(rolesIniciais);
     } catch (error) {
-      console.error('Erro ao buscar usuários', error);
+      console.error("Erro ao buscar usuários", error);
     }
   };
 
   const fetchChamados = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/chamados/todas');
+      const response = await axios.get("http://localhost:8080/api/chamados/todas");
       setChamados(response.data);
     } catch (error) {
-      console.error('Erro ao buscar chamados', error);
+      console.error("Erro ao buscar chamados", error);
     }
   };
+
 
   const atribuirTecnico = async () => {
     if (!selectedTecnico || !selectedChamado) {
@@ -41,11 +74,13 @@ export default function AdminDashboard() {
     }
 
     try {
-      await axios.put(`http://localhost:8080/api/chamados/${selectedChamado}/atribuir-tecnico/${selectedTecnico}`);
+      await axios.put(
+        `http://localhost:8080/api/chamados/${selectedChamado}/atribuir-tecnico/${selectedTecnico}`
+      );
       fetchChamados();
       alert("Técnico atribuído com sucesso!");
     } catch (error) {
-      console.error('Erro ao atribuir técnico', error);
+      console.error("Erro ao atribuir técnico", error);
       alert("Erro ao atribuir técnico.");
     }
   };
@@ -62,21 +97,46 @@ export default function AdminDashboard() {
       await axios.put(
         `http://localhost:8080/api/usuarios/${userId}/role`,
         role,
-        { headers: { 'Content-Type': 'application/json' } }
+        { headers: { "Content-Type": "application/json" } }
       );
       alert("Role atualizado com sucesso!");
     } catch (error) {
-      console.error('Erro ao atualizar role', error);
+      console.error("Erro ao atualizar role", error);
       alert("Erro ao atualizar role.");
     }
   };
+
+  const atualizarPrioridade = async () => {
+    if (!selectedChamado) {
+      alert("Selecione um chamado primeiro.");
+      return;
+    }
+    if (!selectedPrioridade) {
+      alert("Selecione uma prioridade.");
+      return;
+    }
+  
+    try {
+      await axios.put(
+        `http://localhost:8080/api/chamados/${selectedChamado}/prioridade`,
+        { prioridade: selectedPrioridade.toUpperCase() },
+        { headers: { "Content-Type": "application/json" } }
+      );
+      fetchChamados();
+      alert("Prioridade atualizada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao atualizar prioridade", error);
+      alert("Erro ao atualizar prioridade.");
+    }
+  };
+  
 
   useEffect(() => {
     fetchUsuarios();
     fetchChamados();
   }, []);
 
-  const rolesDisponiveis = ['CLIENT', 'TECNICO', 'ADMIN'];
+  const rolesDisponiveis = ["CLIENT", "TECNICO", "ADMIN"];
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
@@ -85,16 +145,22 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-semibold">Admin Panel</h1>
           <div className="space-x-4 flex flex-wrap justify-between sm:space-x-4 sm:space-y-0 space-y-4">
             <button
-              className={`px-4 py-2 rounded ${activeTab === 'usuarios' ? 'bg-indigo-500' : 'bg-indigo-700'} hover:bg-indigo-600`}
-              onClick={() => setActiveTab('usuarios')}
+              className={`px-4 py-2 rounded ${activeTab === "usuarios" ? "bg-indigo-500" : "bg-indigo-700"} hover:bg-indigo-600`}
+              onClick={() => setActiveTab("usuarios")}
             >
               Usuários
             </button>
             <button
-              className={`px-4 py-2 rounded ${activeTab === 'atribuir-tecnico' ? 'bg-indigo-500' : 'bg-indigo-700'} hover:bg-indigo-600`}
-              onClick={() => setActiveTab('atribuir-tecnico')}
+              className={`px-4 py-2 rounded ${activeTab === "atribuir-tecnico" ? "bg-indigo-500" : "bg-indigo-700"} hover:bg-indigo-600`}
+              onClick={() => setActiveTab("atribuir-tecnico")}
             >
               Atribuir Técnico
+            </button>
+            <button
+              className={`px-4 py-2 rounded ${activeTab === "relatorio" ? "bg-indigo-500" : "bg-indigo-700"} hover:bg-indigo-600`}
+              onClick={() => setActiveTab("relatorio")}
+            >
+              Relatórios
             </button>
             <button
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none"
@@ -107,7 +173,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="flex-1 p-6 pt-20">
-        {activeTab === 'usuarios' && (
+        {activeTab === "usuarios" && (
           <div className="max-w-7xl mx-auto">
             <h2 className="text-3xl sm:text-2xl font-semibold text-gray-800 mb-6">Painel de Administração de Usuários</h2>
             <div className="overflow-x-auto bg-white shadow-xl rounded-xl">
@@ -158,7 +224,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'atribuir-tecnico' && (
+        {activeTab === "atribuir-tecnico" && (
           <div className="max-w-7xl mx-auto">
             <h2 className="text-3xl sm:text-2xl font-semibold text-gray-800 mb-6">Atribuição de Técnico aos Chamados</h2>
             <div className="bg-white p-6 shadow-xl rounded-xl">
@@ -176,8 +242,6 @@ export default function AdminDashboard() {
                     </option>
                   ))}
                 </select>
-
-                {/* Exibe o técnico atual abaixo do select */}
                 {selectedChamado && (() => {
                   const chamado = chamados.find(c => c.id.toString() === selectedChamado);
                   return (
@@ -187,7 +251,6 @@ export default function AdminDashboard() {
                   );
                 })()}
               </div>
-
               <div className="mb-4">
                 <label htmlFor="tecnico" className="block text-sm font-medium text-gray-700">Escolha um Técnico:</label>
                 <select
@@ -195,22 +258,108 @@ export default function AdminDashboard() {
                   className="w-full bg-gray-100 border border-gray-300 text-gray-700 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   onChange={(e) => setSelectedTecnico(e.target.value)}
                 >
-                  <option value="">Selecione um Técnico</option>
-                  {usuarios.filter(user => user.role === 'TECNICO').map((tecnico) => (
-                    <option key={tecnico.id} value={tecnico.id}>
-                      {tecnico.nome}
+                  <option value="">Selecione</option>
+                  {usuarios.filter(user => user.role === "TECNICO").map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.nome}
                     </option>
                   ))}
                 </select>
               </div>
-
               <button
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 onClick={atribuirTecnico}
               >
                 Atribuir Técnico
               </button>
             </div>
+
+            <div className="mt-6">
+              <div className="mb-4">
+                <label htmlFor="prioridade" className="block text-sm font-medium text-gray-700">Selecione a Prioridade:</label>
+                <select
+                  id="prioridade"
+                  className="w-full bg-gray-100 border border-gray-300 text-gray-700 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  value={selectedPrioridade}
+                  onChange={(e) => setSelectedPrioridade(e.target.value)}
+                >
+                  <option value="">Selecione a Prioridade</option>
+                  <option value="BAIXA">Baixa</option>
+                  <option value="MEDIA">Média</option>
+                  <option value="ALTA">Alta</option>
+                </select>
+              </div>
+
+              <button
+                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                onClick={atualizarPrioridade}
+                disabled={!selectedPrioridade}
+              >
+                Atualizar Prioridade do Chamado
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "relatorio" && (
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-3xl sm:text-2xl font-semibold text-gray-800 mb-6">Gerar Relatório SLA</h2>
+            <div className="bg-white p-6 shadow-xl rounded-xl">
+              <div className="mb-4">
+                <label htmlFor="inicio" className="block text-sm font-medium text-gray-700">Data de Início</label>
+                <input
+                  type="datetime-local"
+                  id="inicio"
+                  value={inicio}
+                  onChange={(e) => setInicio(e.target.value)}
+                  className="w-full bg-gray-100 border border-gray-300 text-gray-700 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="fim" className="block text-sm font-medium text-gray-700">Data de Fim</label>
+                <input
+                  type="datetime-local"
+                  id="fim"
+                  value={fim}
+                  onChange={(e) => setFim(e.target.value)}
+                  className="w-full bg-gray-100 border border-gray-300 text-gray-700 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <button
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none"
+                onClick={gerarRelatorio}
+                disabled={loading}
+              >
+                {loading ? "Gerando Relatório..." : "Gerar Relatório SLA"}
+              </button>
+            </div>
+
+            {relatorioSLA && (
+              <div className="mt-6">
+                <h3 className="text-xl font-semibold text-indigo-700 mb-2">Relatório SLA</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white p-6 shadow-xl rounded-lg">
+                    <h4 className="text-lg font-medium text-gray-800 mb-2">Status</h4>
+                    {Object.entries(relatorioSLA.statusCount).map(([status, count]) => (
+                      <p key={status} className="text-sm text-gray-600">
+                        {status}: {count}
+                      </p>
+                    ))}
+                  </div>
+
+                  <div className="bg-white p-6 shadow-xl rounded-lg">
+                    <h4 className="text-lg font-medium text-gray-800 mb-2">Prioridade</h4>
+                    {Object.entries(relatorioSLA.prioridadeCount).map(([prioridade, count]) => (
+                      <p key={prioridade} className="text-sm text-gray-600">
+                        {prioridade}: {count}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

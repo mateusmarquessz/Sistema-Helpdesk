@@ -6,6 +6,7 @@ import com.github.mateusmarquessz.HelpDesk.Model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -13,4 +14,6 @@ public interface ChamadoRepository extends JpaRepository<Chamado, Long> {
     List<Chamado> findByTecnicoId(Integer tecnicoId);
     long countByTecnicoAndStatusIn(Usuario tecnico, List<StatusChamado> statusList);
     List<Chamado> findByClienteId(Integer clienteId);
+    List<Chamado> findByStatusAndAtualizadoEmBetween(StatusChamado status, LocalDateTime inicio, LocalDateTime fim);
+
 }

@@ -31,6 +31,12 @@ function ClienteDashboard() {
     fetchChamados();
   }, []);
 
+  const showPriorityChangeNotification = (prioridadeAnterior, prioridadeAtual) => {
+    if (prioridadeAnterior !== prioridadeAtual) {
+      alert(`A prioridade do seu chamado foi alterada para: ${prioridadeAtual}`);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoadingCriacao(true);
@@ -40,22 +46,28 @@ function ClienteDashboard() {
       titulo,
       descricao,
       prioridade,
-      id: localStorage.getItem("id"),
     };
 
     try {
+      const usuarioId = localStorage.getItem("id");
       await axios.post(
-        `http://localhost:8080/api/chamados?usuarioId=${localStorage.getItem("id")}`,
+        `http://localhost:8080/api/chamados?usuarioId=${usuarioId}`,
         chamadoData,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
-      );      
+      );
+    
       setTitulo("");
       setDescricao("");
-      setPrioridade("Baixa");
+      setPrioridade("BAIXA");
+
+      // Verifica se a prioridade foi alterada
+      showPriorityChangeNotification(prioridadeAnterior, prioridade);
+
+      // Recarregar a lista de chamados
       setLoadingChamados(true);
       const response = await axios.get("http://localhost:8080/api/chamados/cliente", {
         headers: {
@@ -161,6 +173,8 @@ function ClienteDashboard() {
                     <th className="py-3 px-6 text-left text-gray-600">Descrição</th>
                     <th className="py-3 px-6 text-left text-gray-600">Prioridade</th>
                     <th className="py-3 px-6 text-left text-gray-600">Status</th>
+                    <th className="py-3 px-6 text-left text-gray-600">Prazo Resposta</th>
+                    <th className="py-3 px-6 text-left text-gray-600">Prazo Resolução</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,6 +184,8 @@ function ClienteDashboard() {
                       <td className="py-4 px-6">{chamado.descricao}</td>
                       <td className="py-4 px-6">{chamado.prioridade}</td>
                       <td className="py-4 px-6">{chamado.status}</td>
+                      <td className="py-4 px-6">{new Date(chamado.prazoResposta).toLocaleString()}</td>
+                      <td className="py-4 px-6">{new Date(chamado.prazoResolucao).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

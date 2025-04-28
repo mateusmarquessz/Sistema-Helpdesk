@@ -1,6 +1,8 @@
 package com.github.mateusmarquessz.HelpDesk.Service;
 
 import com.github.mateusmarquessz.HelpDesk.Dto.CriarChamadoDTO;
+import com.github.mateusmarquessz.HelpDesk.Dto.RelatorioSLA;
+import com.github.mateusmarquessz.HelpDesk.Enum.PrioridadeChamado;
 import com.github.mateusmarquessz.HelpDesk.Enum.Role;
 import com.github.mateusmarquessz.HelpDesk.Enum.StatusChamado;
 import com.github.mateusmarquessz.HelpDesk.Model.Chamado;
@@ -35,8 +37,55 @@ public class ChamadoService {
         Usuario tecnicoSelecionado = buscarTecnicoRoundRobin();
         chamado.setTecnico(tecnicoSelecionado);
 
+        LocalDateTime agora = LocalDateTime.now();
+        switch (dto.getPrioridade()) {
+            case ALTA -> {
+                chamado.setPrazoResposta(agora.plusMinutes(30));
+                chamado.setPrazoResolucao(agora.plusHours(4));
+            }
+            case MEDIA -> {
+                chamado.setPrazoResposta(agora.plusHours(2));
+                chamado.setPrazoResolucao(agora.plusHours(12));
+            }
+            case BAIXA -> {
+                chamado.setPrazoResposta(agora.plusHours(4));
+                chamado.setPrazoResolucao(agora.plusHours(24));
+            }
+            default -> {
+                chamado.setPrazoResposta(agora.plusHours(2));
+                chamado.setPrazoResolucao(agora.plusHours(12));
+            }
+        }
+
         return chamadoRepository.save(chamado);
     }
+
+    public void atualizarPrioridade(Long chamadoId, PrioridadeChamado novaPrioridade) {
+        Chamado chamado = chamadoRepository.findById(chamadoId)
+                .orElseThrow(() -> new RuntimeException("Chamado não encontrado"));
+
+        chamado.setPrioridade(novaPrioridade);
+        LocalDateTime agora = LocalDateTime.now();
+
+        switch (novaPrioridade) {
+            case ALTA -> {
+                chamado.setPrazoResposta(agora.plusMinutes(30));
+                chamado.setPrazoResolucao(agora.plusHours(4));
+            }
+            case MEDIA -> {
+                chamado.setPrazoResposta(agora.plusHours(2));
+                chamado.setPrazoResolucao(agora.plusHours(12));
+            }
+            case BAIXA -> {
+                chamado.setPrazoResposta(agora.plusHours(4));
+                chamado.setPrazoResolucao(agora.plusHours(24));
+            }
+        }
+
+        chamado.setAtualizadoEm(agora);
+        chamadoRepository.save(chamado);
+    }
+
 
 
     public void atribuirTecnico(Long chamadoId, Integer tecnicoId) {
@@ -96,5 +145,78 @@ public class ChamadoService {
         indiceRoundRobin.set((startIndex + 1) % totalTecnicos);
         return tecnicoFallback;
     }
+
+    public void atualizarChamado(Long chamadoId,String novoTitulo, String novaDescricao, StatusChamado novoStatus) {
+        Chamado chamado = chamadoRepository.findById(chamadoId)
+                .orElseThrow(() -> new RuntimeException("Chamado não encontrado"));
+
+        if(novoTitulo != null){
+            chamado.setTitulo(novoTitulo);
+        }
+
+        if (novaDescricao != null && !novaDescricao.isEmpty()) {
+            chamado.setDescricao(novaDescricao);
+        }
+        if (novoStatus != null) {
+            chamado.setStatus(novoStatus);
+        }
+
+        chamado.setAtualizadoEm(LocalDateTime.now());
+        if (novoStatus == StatusChamado.RESOLVIDO) {
+            boolean slaCumprido = chamado.getAtualizadoEm().isBefore(chamado.getPrazoResolucao());
+            chamado.setSlaCumprido(slaCumprido);
+        }
+
+        chamadoRepository.save(chamado);
+    }
+
+
+    public RelatorioSLA gerarRelatorioSLA(LocalDateTime inicio, LocalDateTime fim) {
+        List<Chamado> chamados = chamadoRepository.findByStatusAndAtualizadoEmBetween(
+                StatusChamado.RESOLVIDO, inicio, fim
+        );
+
+        long totalChamados = chamados.size();
+        long chamadosDentroSLA = chamados.stream().filter(Chamado::getSlaCumprido).count();
+        long chamadosForaSLA = totalChamados - chamadosDentroSLA;
+
+        double percentualCumprimento = totalChamados > 0
+                ? (chamadosDentroSLA * 100.0) / totalChamados
+                : 0.0;
+
+        RelatorioSLA relatorio = new RelatorioSLA();
+        relatorio.setChamadosFechados(totalChamados);
+        relatorio.setChamadosDentroSLA(chamadosDentroSLA);
+        relatorio.setChamadosForaSLA(chamadosForaSLA);
+        relatorio.setPercentualCumprimento(percentualCumprimento);
+
+        return relatorio;
+    }
+
+    public void recusarChamado(Long chamadoId, Integer tecnicoId) {
+        Chamado chamado = chamadoRepository.findById(chamadoId)
+                .orElseThrow(() -> new RuntimeException("Chamado não encontrado"));
+
+        Usuario tecnico = usuarioRepository.findById(tecnicoId)
+                .orElseThrow(() -> new RuntimeException("Técnico não encontrado"));
+
+        if (tecnico.getRole() != Role.TECNICO) {
+            throw new RuntimeException("Usuário não é um técnico");
+        }
+
+        if (!chamado.getTecnico().equals(tecnico)) {
+            throw new RuntimeException("O técnico não é o responsável por este chamado");
+        }
+
+        chamado.setStatus(StatusChamado.PENDENTE);
+        chamado.setTecnico(null);
+        chamado.setAtualizadoEm(LocalDateTime.now());
+        Usuario tecnicoNovo = buscarTecnicoRoundRobin();
+        chamado.setTecnico(tecnicoNovo);
+
+        chamadoRepository.save(chamado);
+    }
+
+
 
 }

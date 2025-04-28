@@ -38,8 +38,11 @@ public class Chamado {
     private Usuario tecnico;
 
     private LocalDateTime criadoEm;
-
     private LocalDateTime atualizadoEm;
+
+    private LocalDateTime prazoResposta;
+    private LocalDateTime prazoResolucao;
+    private Boolean slaCumprido;
 
     @OneToMany(mappedBy = "chamado", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Mensagem> mensagens = new ArrayList<>();
