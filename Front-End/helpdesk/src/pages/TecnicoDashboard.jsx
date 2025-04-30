@@ -9,13 +9,24 @@ export default function TecnicoDashboard() {
   const [chamadoSelecionado, setChamadoSelecionado] = useState(null);
   const [novoTitulo, setNovoTitulo] = useState('');
   const [novaDescricao, setNovaDescricao] = useState('');
+  const [prioridadeTemp, setPrioridadeTemp] = useState({});
   const [novoStatus, setNovoStatus] = useState('');
+  const [novaPrioridade, setNovaPrioridade] = useState('');
   const navigate = useNavigate();
   const tecnicoId = localStorage.getItem("id");
 
   const fetchChamadosTecnico = async () => {
+    const token = localStorage.getItem("token");
+
     try {
-      const response = await axios.get(`http://localhost:8080/api/chamados/tecnico/${tecnicoId}`);
+      const response = await axios.get(
+        `http://localhost:8080/api/chamados/tecnico/${tecnicoId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
       setChamados(response.data);
 
       const statusIniciais = {};
@@ -36,32 +47,74 @@ export default function TecnicoDashboard() {
 
   // Função para recusar o chamado e passar para o próximo técnico
   const handleRecusarChamado = async (chamadoId) => {
+    const token = localStorage.getItem('token');
+
     try {
-      await axios.put(
+      const response = await axios.put(
         `http://localhost:8080/api/chamados/${chamadoId}/recusar`,
         {},
-        { headers: { 'Content-Type': 'application/json' } }
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+        }
       );
       alert("Chamado recusado e atribuído a outro técnico.");
       fetchChamadosTecnico();
     } catch (error) {
       console.error('Erro ao recusar chamado', error);
-      alert("Erro ao recusar chamado.");
+      if (error.response) {
+        console.error(`Erro ao recusar chamado: ${error.response.data || error.response.statusText}`);
+      } else {
+        alert("Erro inesperado ao recusar chamado.");
+      }
     }
   };
 
-  // Função para atualizar os dados do chamado (como a descrição e o status)
+  const handleConcluirChamado = async (chamadoId) => {
+    const token = localStorage.getItem('token');
+    try {
+      await axios.put(
+        `http://localhost:8080/api/chamados/${chamadoId}/concluir`,
+        {},
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      alert("Chamado concluído com sucesso!");
+      fetchChamadosTecnico();
+      setChamadoSelecionado(null);
+    } catch (error) {
+      console.error('Erro ao concluir chamado', error);
+      alert("Erro ao concluir chamado.");
+    }
+  };
+
+
+
+  // Função para atualizar os dados do chamado (como título, descrição, status)
   const handleAtualizarChamado = async (chamadoId) => {
+    const token = localStorage.getItem('token');
+
     try {
       const updatedChamado = {
         novoTitulo,
         novaDescricao,
-        novoStatus
+        novoStatus,
       };
       await axios.put(
         `http://localhost:8080/api/chamados/${chamadoId}/atualizar`,
         updatedChamado,
-        { headers: { 'Content-Type': 'application/json' } }
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
       );
       alert("Chamado atualizado com sucesso!");
       fetchChamadosTecnico();
@@ -76,7 +129,10 @@ export default function TecnicoDashboard() {
     fetchChamadosTecnico();
   }, []);
 
-  const statusDisponiveis = [ 'PENDENTE','EM_ATENDIMENTO', 'RESOLVIDO', 'FECHADO'];
+  const statusDisponiveis = ['ABERTO', 'PENDENTE', 'EM_ATENDIMENTO', 'RESOLVIDO', 'FECHADO'];
+  const prioridadesDisponiveis = ['BAIXA', 'MEDIA', 'ALTA'];
+
+
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
@@ -102,6 +158,7 @@ export default function TecnicoDashboard() {
                 <th className="px-6 py-3 text-left text-sm font-semibold">Título</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold">Descrição</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold">Status</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold">Prioridade</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold">Ações</th>
               </tr>
             </thead>
@@ -116,22 +173,32 @@ export default function TecnicoDashboard() {
                   <td className="px-6 py-4 text-sm text-gray-900">{chamado.titulo}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{chamado.descricao}</td>
                   <td className="px-6 py-4">
-                    <select
-                      value={statusTemp[chamado.id]}
-                      onClick={e => e.stopPropagation()}
-                      onChange={(e) =>
-                        setStatusTemp({ ...statusTemp, [chamado.id]: e.target.value })
-                      }
-                      className="w-full bg-gray-100 border border-gray-300 text-gray-700 py-2 px-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      {statusDisponiveis.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
+                    <span className={`px-4 py-2 rounded-lg font-medium ${chamado.status === 'RESOLVIDO' ? 'bg-green-100 text-green-700' :
+                      chamado.status === 'FECHADO' ? 'bg-gray-200 text-gray-700' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                      {chamado.status}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
+                    {/* Exibir prioridade como texto, sem select */}
+                    <span className={`px-4 py-2 rounded-lg font-medium ${chamado.prioridade === 'ALTA' ? 'bg-red-100 text-red-700' :
+                      chamado.prioridade === 'MÉDIA' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                      {chamado.prioridade}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition ml-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleConcluirChamado(chamado.id);
+                      }}
+                    >
+                      Concluir
+                    </button>
                     <button
                       className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition ml-2"
                       onClick={(e) => {
@@ -146,7 +213,7 @@ export default function TecnicoDashboard() {
               ))}
               {chamados.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-gray-500">Nenhum chamado atribuído.</td>
+                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">Nenhum chamado atribuído.</td>
                 </tr>
               )}
             </tbody>
@@ -178,10 +245,10 @@ export default function TecnicoDashboard() {
               <div>
                 <p className="text-sm text-gray-500 mb-1">Status</p>
                 <div className={`px-4 py-2 rounded-lg font-medium ${chamadoSelecionado.status === 'RESOLVIDO'
-                    ? 'bg-green-100 text-green-700'
-                    : chamadoSelecionado.status === 'FECHADO'
-                      ? 'bg-gray-200 text-gray-700'
-                      : 'bg-yellow-100 text-yellow-800'
+                  ? 'bg-green-100 text-green-700'
+                  : chamadoSelecionado.status === 'FECHADO'
+                    ? 'bg-gray-200 text-gray-700'
+                    : 'bg-yellow-100 text-yellow-800'
                   }`}>
                   {chamadoSelecionado.status}
                 </div>
@@ -221,6 +288,20 @@ export default function TecnicoDashboard() {
                 {statusDisponiveis.map((status) => (
                   <option key={status} value={status}>
                     {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-6">
+              <label className="block text-sm text-gray-500 mb-1">Nova Prioridade</label>
+              <select
+                value={novaPrioridade}
+                onChange={(e) => setNovaPrioridade(e.target.value)}
+                className="w-full bg-gray-100 border border-gray-300 text-gray-700 py-2 px-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                {prioridadesDisponiveis.map((prioridade) => (
+                  <option key={prioridade} value={prioridade}>
+                    {prioridade}
                   </option>
                 ))}
               </select>

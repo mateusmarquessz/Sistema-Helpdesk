@@ -76,14 +76,21 @@ public class ChamadoController {
     }
 
     @GetMapping("/sla")
-    public RelatorioSLA gerarRelatorioSLA(
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RelatorioSLA> gerarRelatorioSLA(
             @RequestParam("inicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
             @RequestParam("fim") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fim
     ) {
-        return chamadoService.gerarRelatorioSLA(inicio, fim);
+        if (fim.isBefore(inicio)) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        RelatorioSLA relatorio = chamadoService.gerarRelatorioSLA(inicio, fim);
+        return ResponseEntity.ok(relatorio);
     }
 
+
     @PutMapping("/{id}/prioridade")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECNICO')")
     public void atualizarPrioridade(
             @PathVariable Long id,
             @RequestBody AtualizarPrioridadeDTO dto
@@ -99,6 +106,16 @@ public class ChamadoController {
             return ResponseEntity.ok("Chamado recusado e atribuído a outro técnico.");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{chamadoId}/concluir")
+    public ResponseEntity<String> concluirChamado(@PathVariable Long chamadoId) {
+        try {
+            chamadoService.concluirChamado(chamadoId);
+            return ResponseEntity.ok("Chamado concluído com sucesso");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body("Erro ao concluir o chamado: " + e.getMessage());
         }
     }
 }

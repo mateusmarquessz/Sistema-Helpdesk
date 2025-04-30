@@ -160,21 +160,12 @@ public class ChamadoService {
         if (novoStatus != null) {
             chamado.setStatus(novoStatus);
         }
-
         chamado.setAtualizadoEm(LocalDateTime.now());
-        if (novoStatus == StatusChamado.RESOLVIDO) {
-            boolean slaCumprido = chamado.getAtualizadoEm().isBefore(chamado.getPrazoResolucao());
-            chamado.setSlaCumprido(slaCumprido);
-        }
-
         chamadoRepository.save(chamado);
     }
 
-
     public RelatorioSLA gerarRelatorioSLA(LocalDateTime inicio, LocalDateTime fim) {
-        List<Chamado> chamados = chamadoRepository.findByStatusAndAtualizadoEmBetween(
-                StatusChamado.RESOLVIDO, inicio, fim
-        );
+        List<Chamado> chamados = chamadoRepository.findByAtualizadoEmBetween(inicio, fim);
 
         long totalChamados = chamados.size();
         long chamadosDentroSLA = chamados.stream().filter(Chamado::getSlaCumprido).count();
@@ -217,6 +208,25 @@ public class ChamadoService {
         chamadoRepository.save(chamado);
     }
 
+    public void concluirChamado(Long chamadoId) {
+        Chamado chamado = chamadoRepository.findById(chamadoId)
+                .orElseThrow(() -> new RuntimeException("Chamado não encontrado"));
+
+        if (chamado.getStatus() == StatusChamado.FECHADO) {
+            throw new RuntimeException("Chamado já está fechado");
+        }
+
+        chamado.setStatus(StatusChamado.RESOLVIDO);
+        chamado.setAtualizadoEm(LocalDateTime.now());
+
+        if (chamado.getPrazoResolucao() != null && chamado.getPrazoResolucao().isBefore(LocalDateTime.now())) {
+            chamado.setSlaCumprido(false);
+        } else {
+            chamado.setSlaCumprido(true);
+        }
+
+        chamadoRepository.save(chamado);
+    }
 
 
 }

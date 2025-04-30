@@ -10,6 +10,7 @@ function ClienteDashboard() {
   const [loadingChamados, setLoadingChamados] = useState(true);
   const [loadingCriacao, setLoadingCriacao] = useState(false);
   const [erroCriacao, setErroCriacao] = useState("");
+  const [mostrarFechados, setMostrarFechados] = useState(false); // Novo estado para mostrar fechados/concluídos
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,12 +32,6 @@ function ClienteDashboard() {
     fetchChamados();
   }, []);
 
-  const showPriorityChangeNotification = (prioridadeAnterior, prioridadeAtual) => {
-    if (prioridadeAnterior !== prioridadeAtual) {
-      alert(`A prioridade do seu chamado foi alterada para: ${prioridadeAtual}`);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoadingCriacao(true);
@@ -50,7 +45,7 @@ function ClienteDashboard() {
 
     try {
       const usuarioId = localStorage.getItem("id");
-      await axios.post(
+      const response = await axios.post(
         `http://localhost:8080/api/chamados?usuarioId=${usuarioId}`,
         chamadoData,
         {
@@ -59,22 +54,13 @@ function ClienteDashboard() {
           },
         }
       );
-    
+
+      setChamados((prevChamados) => [response.data, ...prevChamados]);
+
       setTitulo("");
       setDescricao("");
       setPrioridade("BAIXA");
 
-      // Verifica se a prioridade foi alterada
-      showPriorityChangeNotification(prioridadeAnterior, prioridade);
-
-      // Recarregar a lista de chamados
-      setLoadingChamados(true);
-      const response = await axios.get("http://localhost:8080/api/chamados/cliente", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-      setChamados(response.data);
     } catch (error) {
       console.error("Erro ao criar chamado", error);
       setErroCriacao("Ocorreu um erro ao criar o chamado. Tente novamente mais tarde.");
@@ -88,6 +74,11 @@ function ClienteDashboard() {
     localStorage.removeItem("id");
     navigate("/login");
   };
+
+  const chamadosFiltrados = chamados.filter(chamado => 
+    mostrarFechados ? (chamado.status === "FECHADO" || chamado.status === "CONCLUIDO") : 
+    (chamado.status !== "FECHADO" && chamado.status !== "CONCLUIDO")
+  );
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
@@ -160,10 +151,19 @@ function ClienteDashboard() {
         <div className="max-w-6xl mx-auto mt-12">
           <h2 className="text-4xl font-semibold text-gray-800 mb-6">Seus Chamados</h2>
 
+          <button
+            onClick={() => setMostrarFechados(!mostrarFechados)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md mb-6"
+          >
+            {mostrarFechados ? "Mostrar Chamados Ativos" : "Mostrar Chamados Fechados/Concluídos"}
+          </button>
+
           {loadingChamados ? (
             <div className="text-center text-lg text-gray-600">Carregando seus chamados...</div>
-          ) : chamados.length === 0 ? (
-            <div className="text-center text-lg text-gray-600">Você ainda não tem chamados registrados.</div>
+          ) : chamadosFiltrados.length === 0 ? (
+            <div className="text-center text-lg text-gray-600">
+              {mostrarFechados ? "Não há chamados fechados ou concluídos." : "Você ainda não tem chamados registrados."}
+            </div>
           ) : (
             <div className="overflow-x-auto bg-white p-6 rounded-lg shadow-lg">
               <table className="min-w-full">
@@ -178,7 +178,7 @@ function ClienteDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {chamados.map((chamado) => (
+                  {chamadosFiltrados.map((chamado) => (
                     <tr key={chamado.id} className="border-t border-gray-200">
                       <td className="py-4 px-6">{chamado.titulo}</td>
                       <td className="py-4 px-6">{chamado.descricao}</td>

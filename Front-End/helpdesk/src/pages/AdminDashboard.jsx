@@ -21,8 +21,21 @@ export default function AdminDashboard() {
   const [fim, setFim] = useState("");
   const [loading, setLoading] = useState(false);
 
-   // Função para gerar o relatório SLA
-   const gerarRelatorio = async () => {
+  // Função para pegar o token do localStorage
+  const getAuthToken = () => {
+    return localStorage.getItem("token"); // Supondo que o token é salvo com a chave "token"
+  };
+
+  // Configuração do axios para incluir o token no cabeçalho
+  const axiosInstance = axios.create({
+    baseURL: "http://localhost:8080/api", // baseURL para as suas requisições
+    headers: {
+      "Authorization": `Bearer ${getAuthToken()}`, // Adiciona o token ao cabeçalho
+      "Content-Type": "application/json",
+    },
+  });
+
+  const gerarRelatorio = async () => {
     if (!inicio || !fim) {
       alert("Por favor, preencha ambos os campos de data.");
       return;
@@ -31,8 +44,8 @@ export default function AdminDashboard() {
     setLoading(true);
 
     try {
-      const response = await axios.get(
-        `http://localhost:8080/api/sla?inicio=${inicio}&fim=${fim}`,
+      const response = await axiosInstance.get(
+        `/chamados/sla?inicio=${inicio}&fim=${fim}`
       );
       setRelatorioSLA(response.data);
     } catch (error) {
@@ -45,7 +58,7 @@ export default function AdminDashboard() {
 
   const fetchUsuarios = async () => {
     try {
-      const response = await axios.get("http://localhost:8080/api/usuarios");
+      const response = await axiosInstance.get("/usuarios");
       setUsuarios(response.data);
       const rolesIniciais = {};
       response.data.forEach((user) => {
@@ -59,13 +72,12 @@ export default function AdminDashboard() {
 
   const fetchChamados = async () => {
     try {
-      const response = await axios.get("http://localhost:8080/api/chamados/todas");
+      const response = await axiosInstance.get("/chamados/todas");
       setChamados(response.data);
     } catch (error) {
       console.error("Erro ao buscar chamados", error);
     }
   };
-
 
   const atribuirTecnico = async () => {
     if (!selectedTecnico || !selectedChamado) {
@@ -74,8 +86,8 @@ export default function AdminDashboard() {
     }
 
     try {
-      await axios.put(
-        `http://localhost:8080/api/chamados/${selectedChamado}/atribuir-tecnico/${selectedTecnico}`
+      await axiosInstance.put(
+        `/chamados/${selectedChamado}/atribuir-tecnico/${selectedTecnico}`
       );
       fetchChamados();
       alert("Técnico atribuído com sucesso!");
@@ -94,10 +106,9 @@ export default function AdminDashboard() {
   const handleUpdateRole = async (userId) => {
     try {
       const role = rolesTemp[userId];
-      await axios.put(
-        `http://localhost:8080/api/usuarios/${userId}/role`,
-        role,
-        { headers: { "Content-Type": "application/json" } }
+      await axiosInstance.put(
+        `/usuarios/${userId}/role`,
+        role
       );
       alert("Role atualizado com sucesso!");
     } catch (error) {
@@ -115,12 +126,11 @@ export default function AdminDashboard() {
       alert("Selecione uma prioridade.");
       return;
     }
-  
+
     try {
-      await axios.put(
-        `http://localhost:8080/api/chamados/${selectedChamado}/prioridade`,
-        { prioridade: selectedPrioridade.toUpperCase() },
-        { headers: { "Content-Type": "application/json" } }
+      await axiosInstance.put(
+        `/chamados/${selectedChamado}/prioridade`,
+        { prioridade: selectedPrioridade.toUpperCase() }
       );
       fetchChamados();
       alert("Prioridade atualizada com sucesso!");
@@ -129,7 +139,6 @@ export default function AdminDashboard() {
       alert("Erro ao atualizar prioridade.");
     }
   };
-  
 
   useEffect(() => {
     fetchUsuarios();
@@ -341,27 +350,19 @@ export default function AdminDashboard() {
                 <h3 className="text-xl font-semibold text-indigo-700 mb-2">Relatório SLA</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-white p-6 shadow-xl rounded-lg">
-                    <h4 className="text-lg font-medium text-gray-800 mb-2">Status</h4>
-                    {Object.entries(relatorioSLA.statusCount).map(([status, count]) => (
-                      <p key={status} className="text-sm text-gray-600">
-                        {status}: {count}
-                      </p>
-                    ))}
-                  </div>
-
-                  <div className="bg-white p-6 shadow-xl rounded-lg">
-                    <h4 className="text-lg font-medium text-gray-800 mb-2">Prioridade</h4>
-                    {Object.entries(relatorioSLA.prioridadeCount).map(([prioridade, count]) => (
-                      <p key={prioridade} className="text-sm text-gray-600">
-                        {prioridade}: {count}
-                      </p>
-                    ))}
+                    <h4 className="text-lg font-medium text-gray-800 mb-2">Chamados Fechados</h4>
+                    <p className="text-sm text-gray-600">Total: {relatorioSLA.chamadosFechados}</p>
+                    <p className="text-sm text-gray-600">Dentro do SLA: {relatorioSLA.chamadosDentroSLA}</p>
+                    <p className="text-sm text-gray-600">Fora do SLA: {relatorioSLA.chamadosForaSLA}</p>
+                    <p className="text-sm text-gray-600">Percentual Cumprido: {relatorioSLA.percentualCumprimento.toFixed(2)}%</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
         )}
+
+
       </div>
     </div>
   );

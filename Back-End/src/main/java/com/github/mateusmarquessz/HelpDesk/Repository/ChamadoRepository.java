@@ -14,6 +14,7 @@ public interface ChamadoRepository extends JpaRepository<Chamado, Long> {
     List<Chamado> findByTecnicoId(Integer tecnicoId);
     long countByTecnicoAndStatusIn(Usuario tecnico, List<StatusChamado> statusList);
     List<Chamado> findByClienteId(Integer clienteId);
-    List<Chamado> findByStatusAndAtualizadoEmBetween(StatusChamado status, LocalDateTime inicio, LocalDateTime fim);
+    List<Chamado> findByAtualizadoEmBetween(LocalDateTime startDate, LocalDateTime endDate);
+
 
 }
