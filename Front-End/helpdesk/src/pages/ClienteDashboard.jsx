@@ -10,7 +10,7 @@ function ClienteDashboard() {
   const [loadingChamados, setLoadingChamados] = useState(true);
   const [loadingCriacao, setLoadingCriacao] = useState(false);
   const [erroCriacao, setErroCriacao] = useState("");
-  const [mostrarFechados, setMostrarFechados] = useState(false); // Novo estado para mostrar fechados/concluídos
+  const [mostrarFechados, setMostrarFechados] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {

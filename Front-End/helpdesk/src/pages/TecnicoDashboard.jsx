@@ -5,13 +5,13 @@ import { X } from "lucide-react";
 
 export default function TecnicoDashboard() {
   const [chamados, setChamados] = useState([]);
-  const [statusTemp, setStatusTemp] = useState({});
   const [chamadoSelecionado, setChamadoSelecionado] = useState(null);
   const [novoTitulo, setNovoTitulo] = useState('');
   const [novaDescricao, setNovaDescricao] = useState('');
-  const [prioridadeTemp, setPrioridadeTemp] = useState({});
   const [novoStatus, setNovoStatus] = useState('');
   const [novaPrioridade, setNovaPrioridade] = useState('');
+  const [abaSelecionada, setAbaSelecionada] = useState('ativos');
+  const [selectedChamado, setSelectedChamado] = useState(null);
   const navigate = useNavigate();
   const tecnicoId = localStorage.getItem("id");
 
@@ -28,12 +28,6 @@ export default function TecnicoDashboard() {
         }
       );
       setChamados(response.data);
-
-      const statusIniciais = {};
-      response.data.forEach(chamado => {
-        statusIniciais[chamado.id] = chamado.status;
-      });
-      setStatusTemp(statusIniciais);
     } catch (error) {
       console.error('Erro ao buscar chamados do técnico', error);
     }
@@ -45,12 +39,11 @@ export default function TecnicoDashboard() {
     navigate("/login");
   };
 
-  // Função para recusar o chamado e passar para o próximo técnico
   const handleRecusarChamado = async (chamadoId) => {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await axios.put(
+      await axios.put(
         `http://localhost:8080/api/chamados/${chamadoId}/recusar`,
         {},
         {
@@ -94,21 +87,33 @@ export default function TecnicoDashboard() {
     }
   };
 
+  const atualizarChamado = async () => {
+    if (!chamadoSelecionado) {
+      alert("Nenhum chamado selecionado.");
+      return;
+    }
 
-
-  // Função para atualizar os dados do chamado (como título, descrição, status)
-  const handleAtualizarChamado = async (chamadoId) => {
     const token = localStorage.getItem('token');
+    if (!token) {
+      alert("Usuário não autenticado.");
+      return;
+    }
+
+    const payload = {};
+    if (novoTitulo?.trim()) payload.novoTitulo = novoTitulo.trim();
+    if (novaDescricao?.trim()) payload.novaDescricao = novaDescricao.trim();
+    if (novoStatus) payload.novoStatus = novoStatus;
+    if (novaPrioridade) payload.novaPrioridade = novaPrioridade.toUpperCase();
+
+    if (Object.keys(payload).length === 0) {
+      alert("Nenhuma atualização informada.");
+      return;
+    }
 
     try {
-      const updatedChamado = {
-        novoTitulo,
-        novaDescricao,
-        novoStatus,
-      };
       await axios.put(
-        `http://localhost:8080/api/chamados/${chamadoId}/atualizar`,
-        updatedChamado,
+        `http://localhost:8080/api/chamados/${chamadoSelecionado.id}/atualizar`,
+        payload,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -116,12 +121,51 @@ export default function TecnicoDashboard() {
           }
         }
       );
+
       alert("Chamado atualizado com sucesso!");
       fetchChamadosTecnico();
       setChamadoSelecionado(null);
     } catch (error) {
-      console.error('Erro ao atualizar chamado', error);
+      console.error("Erro ao atualizar chamado", error);
       alert("Erro ao atualizar chamado.");
+    }
+  };
+
+  const atualizarPrioridadeChamado = async () => {
+    if (!chamadoSelecionado) {
+      alert("Nenhum chamado selecionado.");
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert("Usuário não autenticado.");
+      return;
+    }
+
+    if (!novaPrioridade?.trim()) {
+      alert("Nenhuma prioridade informada.");
+      return;
+    }
+
+    try {
+      await axios.put(
+        `http://localhost:8080/api/chamados/${chamadoSelecionado.id}/prioridade`,
+        { novaPrioridade: novaPrioridade.toUpperCase() },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      alert("Prioridade do chamado atualizada com sucesso!");
+      fetchChamadosTecnico();
+      setChamadoSelecionado(null);
+    } catch (error) {
+      console.error("Erro ao atualizar prioridade do chamado", error);
+      alert("Erro ao atualizar prioridade do chamado.");
     }
   };
 
@@ -132,7 +176,9 @@ export default function TecnicoDashboard() {
   const statusDisponiveis = ['ABERTO', 'PENDENTE', 'EM_ATENDIMENTO', 'RESOLVIDO', 'FECHADO'];
   const prioridadesDisponiveis = ['BAIXA', 'MEDIA', 'ALTA'];
 
-
+  const chamadosAtivos = chamados.filter(c => c.status !== 'RESOLVIDO' && c.status !== 'FECHADO');
+  const chamadosFinalizados = chamados.filter(c => c.status === 'RESOLVIDO' || c.status === 'FECHADO');
+  const chamadosFiltrados = abaSelecionada === 'ativos' ? chamadosAtivos : chamadosFinalizados;
 
   return (
     <div className="bg-gray-50 min-h-screen flex flex-col">
@@ -149,7 +195,24 @@ export default function TecnicoDashboard() {
       </div>
 
       <div className="flex-1 p-6 pt-20 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-semibold text-gray-800 mb-6">Meus Chamados</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-semibold text-gray-800">Meus Chamados</h2>
+          <div className="flex space-x-2">
+            <button
+              className={`px-4 py-2 rounded ${abaSelecionada === 'ativos' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+              onClick={() => setAbaSelecionada('ativos')}
+            >
+              Ativos ({chamadosAtivos.length})
+            </button>
+            <button
+              className={`px-4 py-2 rounded ${abaSelecionada === 'concluidos' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+              onClick={() => setAbaSelecionada('concluidos')}
+            >
+              Concluídos / Fechados ({chamadosFinalizados.length})
+            </button>
+          </div>
+        </div>
+
         <div className="overflow-x-auto bg-white shadow-xl rounded-xl">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-indigo-600 text-white">
@@ -163,7 +226,7 @@ export default function TecnicoDashboard() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {chamados.map((chamado) => (
+              {chamadosFiltrados.map((chamado) => (
                 <tr
                   key={chamado.id}
                   className="hover:bg-gray-100 cursor-pointer transition"
@@ -181,9 +244,8 @@ export default function TecnicoDashboard() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    {/* Exibir prioridade como texto, sem select */}
                     <span className={`px-4 py-2 rounded-lg font-medium ${chamado.prioridade === 'ALTA' ? 'bg-red-100 text-red-700' :
-                      chamado.prioridade === 'MÉDIA' ? 'bg-yellow-100 text-yellow-700' :
+                      chamado.prioridade === 'MEDIA' ? 'bg-yellow-100 text-yellow-700' :
                         'bg-green-100 text-green-700'
                       }`}>
                       {chamado.prioridade}
@@ -211,9 +273,9 @@ export default function TecnicoDashboard() {
                   </td>
                 </tr>
               ))}
-              {chamados.length === 0 && (
+              {chamadosFiltrados.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">Nenhum chamado atribuído.</td>
+                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">Nenhum chamado nesta aba.</td>
                 </tr>
               )}
             </tbody>
@@ -263,7 +325,7 @@ export default function TecnicoDashboard() {
               </div>
             </div>
             <div className="mt-6">
-              <label className="block text-sm text-gray-500 mb-1">Novo Titulo</label>
+              <label className="block text-sm text-gray-500 mb-1">Novo Título</label>
               <textarea
                 value={novoTitulo}
                 onChange={(e) => setNovoTitulo(e.target.value)}
@@ -306,15 +368,18 @@ export default function TecnicoDashboard() {
                 ))}
               </select>
             </div>
-
             <div className="mt-6 flex justify-end">
               <button
-                onClick={() => handleAtualizarChamado(chamadoSelecionado.id)}
+                onClick={async () => {
+                  await atualizarChamado();
+                  await atualizarPrioridadeChamado();
+                }}
                 className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
               >
                 Atualizar Chamado
               </button>
             </div>
+
           </div>
         </div>
       )}

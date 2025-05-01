@@ -150,10 +150,9 @@ public class ChamadoService {
         Chamado chamado = chamadoRepository.findById(chamadoId)
                 .orElseThrow(() -> new RuntimeException("Chamado não encontrado"));
 
-        if(novoTitulo != null){
+        if(novoTitulo != null && !novoTitulo.trim().isEmpty()){
             chamado.setTitulo(novoTitulo);
         }
-
         if (novaDescricao != null && !novaDescricao.isEmpty()) {
             chamado.setDescricao(novaDescricao);
         }
@@ -167,9 +166,17 @@ public class ChamadoService {
     public RelatorioSLA gerarRelatorioSLA(LocalDateTime inicio, LocalDateTime fim) {
         List<Chamado> chamados = chamadoRepository.findByAtualizadoEmBetween(inicio, fim);
 
-        long totalChamados = chamados.size();
-        long chamadosDentroSLA = chamados.stream().filter(Chamado::getSlaCumprido).count();
-        long chamadosForaSLA = totalChamados - chamadosDentroSLA;
+        List<Chamado> chamadosComSlaAvaliado = chamados.stream()
+                .filter(c -> c.getSlaCumprido() != null)
+                .toList();
+
+        long totalChamados = chamadosComSlaAvaliado.size();
+        long chamadosDentroSLA = chamadosComSlaAvaliado.stream()
+                .filter(c -> Boolean.TRUE.equals(c.getSlaCumprido()))
+                .count();
+        long chamadosForaSLA = chamadosComSlaAvaliado.stream()
+                .filter(c -> Boolean.FALSE.equals(c.getSlaCumprido()))
+                .count();
 
         double percentualCumprimento = totalChamados > 0
                 ? (chamadosDentroSLA * 100.0) / totalChamados
@@ -183,6 +190,7 @@ public class ChamadoService {
 
         return relatorio;
     }
+
 
     public void recusarChamado(Long chamadoId, Integer tecnicoId) {
         Chamado chamado = chamadoRepository.findById(chamadoId)

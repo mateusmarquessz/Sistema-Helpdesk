@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import html2pdf from "html2pdf.js";
 
 export default function AdminDashboard() {
   const [usuarios, setUsuarios] = useState([]);
@@ -21,16 +22,18 @@ export default function AdminDashboard() {
   const [fim, setFim] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Função para pegar o token do localStorage
+
+
+
   const getAuthToken = () => {
-    return localStorage.getItem("token"); // Supondo que o token é salvo com a chave "token"
+    return localStorage.getItem("token");
   };
 
   // Configuração do axios para incluir o token no cabeçalho
   const axiosInstance = axios.create({
-    baseURL: "http://localhost:8080/api", // baseURL para as suas requisições
+    baseURL: "http://localhost:8080/api",
     headers: {
-      "Authorization": `Bearer ${getAuthToken()}`, // Adiciona o token ao cabeçalho
+      "Authorization": `Bearer ${getAuthToken()}`,
       "Content-Type": "application/json",
     },
   });
@@ -354,15 +357,15 @@ export default function AdminDashboard() {
                     <p className="text-sm text-gray-600">Total: {relatorioSLA.chamadosFechados}</p>
                     <p className="text-sm text-gray-600">Dentro do SLA: {relatorioSLA.chamadosDentroSLA}</p>
                     <p className="text-sm text-gray-600">Fora do SLA: {relatorioSLA.chamadosForaSLA}</p>
-                    <p className="text-sm text-gray-600">Percentual Cumprido: {relatorioSLA.percentualCumprimento.toFixed(2)}%</p>
+                    <p className="text-sm text-gray-600">
+                      Percentual Cumprido: {relatorioSLA.percentualCumprimento.toFixed(2)}%
+                    </p>
                   </div>
                 </div>
               </div>
             )}
           </div>
         )}
-
-
       </div>
     </div>
   );

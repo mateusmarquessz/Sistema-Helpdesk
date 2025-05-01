@@ -77,16 +77,13 @@ public class ChamadoController {
 
     @GetMapping("/sla")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<RelatorioSLA> gerarRelatorioSLA(
+    public ResponseEntity<RelatorioSLA> gerarRelatorio(
             @RequestParam("inicio") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
-            @RequestParam("fim") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fim
-    ) {
-        if (fim.isBefore(inicio)) {
-            return ResponseEntity.badRequest().body(null);
-        }
+            @RequestParam("fim") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fim) {
         RelatorioSLA relatorio = chamadoService.gerarRelatorioSLA(inicio, fim);
         return ResponseEntity.ok(relatorio);
     }
+
 
 
     @PutMapping("/{id}/prioridade")
