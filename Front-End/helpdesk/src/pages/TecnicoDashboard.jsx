@@ -136,22 +136,22 @@ export default function TecnicoDashboard() {
       alert("Nenhum chamado selecionado.");
       return;
     }
-
+  
     const token = localStorage.getItem('token');
     if (!token) {
       alert("Usuário não autenticado.");
       return;
     }
-
+  
     if (!novaPrioridade?.trim()) {
       alert("Nenhuma prioridade informada.");
       return;
     }
-
+  
     try {
       await axios.put(
         `http://localhost:8080/api/chamados/${chamadoSelecionado.id}/prioridade`,
-        { novaPrioridade: novaPrioridade.toUpperCase() },
+        { prioridade: novaPrioridade.toUpperCase() },
         {
           headers: {
             'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ export default function TecnicoDashboard() {
           }
         }
       );
-
+  
       alert("Prioridade do chamado atualizada com sucesso!");
       fetchChamadosTecnico();
       setChamadoSelecionado(null);
@@ -168,7 +168,7 @@ export default function TecnicoDashboard() {
       alert("Erro ao atualizar prioridade do chamado.");
     }
   };
-
+  
   useEffect(() => {
     fetchChamadosTecnico();
   }, []);
@@ -368,12 +368,15 @@ export default function TecnicoDashboard() {
                 ))}
               </select>
             </div>
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex justify-end gap-x-4">
               <button
-                onClick={async () => {
-                  await atualizarChamado();
-                  await atualizarPrioridadeChamado();
-                }}
+                className="px-6 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                onClick={atualizarPrioridadeChamado}
+              >
+                Atualizar Prioridade
+              </button>
+              <button
+                onClick={atualizarChamado}
                 className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
               >
                 Atualizar Chamado
