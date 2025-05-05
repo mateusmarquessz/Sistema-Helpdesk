@@ -1,25 +1,16 @@
-FROM ubuntu:latest AS build
+FROM maven:3.9.4-eclipse-temurin-17 AS build
 
-RUN apt-get update
-RUN apt-get install openjdk-17-jdk -y
-COPY . .
-
-
-RUN apt-get install maven -y
-RUN mvn clean install
-
-FROM openjdk:17-jdk-slim AS build
-COPY pom.xml mvnw ./
+WORKDIR /app
+COPY pom.xml .
 COPY .mvn .mvn
-
-RUN chmod +x ./mvnw
-
+COPY mvnw .
 RUN ./mvnw dependency:resolve
 
 COPY src src
+RUN ./mvnw clean package -DskipTests
 
-RUN ./mvnw package -X
 FROM openjdk:17-jdk-slim
-WORKDIR demo
-COPY --from=build target/*.jar demo.jar
-ENTRYPOINT ["java", "-jar", "demo.jar"]
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
