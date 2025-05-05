@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios"; // Importando o Axios
+import axios from "axios";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
