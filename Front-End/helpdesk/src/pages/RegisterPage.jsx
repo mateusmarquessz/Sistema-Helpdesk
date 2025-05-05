@@ -14,7 +14,7 @@ export default function RegisterPage() {
     setError(null);
 
     try {
-      const response = await axios.post("http://localhost:8080/api/usuarios/cadastro", {
+      const response = await axios.post("https://sistema-helpdesk.onrender.com/api/usuarios/cadastro", {
         nome,
         email,
         senha,

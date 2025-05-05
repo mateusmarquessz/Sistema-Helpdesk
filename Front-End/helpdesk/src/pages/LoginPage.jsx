@@ -11,7 +11,7 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:8080/api/usuarios/login", {
+      const response = await axios.post("https://sistema-helpdesk.onrender.com/api/usuarios/login", {
         email,
         senha,
       });

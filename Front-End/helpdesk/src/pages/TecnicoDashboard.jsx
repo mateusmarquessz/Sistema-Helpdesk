@@ -20,7 +20,7 @@ export default function TecnicoDashboard() {
 
     try {
       const response = await axios.get(
-        `http://localhost:8080/api/chamados/tecnico/${tecnicoId}`,
+        `https://sistema-helpdesk.onrender.com/api/chamados/tecnico/${tecnicoId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`
@@ -44,7 +44,7 @@ export default function TecnicoDashboard() {
 
     try {
       await axios.put(
-        `http://localhost:8080/api/chamados/${chamadoId}/recusar`,
+        `https://sistema-helpdesk.onrender.com/api/chamados/${chamadoId}/recusar`,
         {},
         {
           headers: {
@@ -69,7 +69,7 @@ export default function TecnicoDashboard() {
     const token = localStorage.getItem('token');
     try {
       await axios.put(
-        `http://localhost:8080/api/chamados/${chamadoId}/concluir`,
+        `https://sistema-helpdesk.onrender.com/api/chamados/${chamadoId}/concluir`,
         {},
         {
           headers: {
@@ -112,7 +112,7 @@ export default function TecnicoDashboard() {
 
     try {
       await axios.put(
-        `http://localhost:8080/api/chamados/${chamadoSelecionado.id}/atualizar`,
+        `https://sistema-helpdesk.onrender.com/api/chamados/${chamadoSelecionado.id}/atualizar`,
         payload,
         {
           headers: {
@@ -150,7 +150,7 @@ export default function TecnicoDashboard() {
   
     try {
       await axios.put(
-        `http://localhost:8080/api/chamados/${chamadoSelecionado.id}/prioridade`,
+        `https://sistema-helpdesk.onrender.com/api/chamados/${chamadoSelecionado.id}/prioridade`,
         { prioridade: novaPrioridade.toUpperCase() },
         {
           headers: {

@@ -16,7 +16,8 @@ function ClienteDashboard() {
   useEffect(() => {
     const fetchChamados = async () => {
       try {
-        const response = await axios.get("http://localhost:8080/api/chamados/cliente", {
+        //const response = await axios.get("http://localhost:8080/api/chamados/cliente",
+          const response = await axios.get(" https://sistema-helpdesk.onrender.com/api/chamados/cliente",  {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -46,7 +47,7 @@ function ClienteDashboard() {
     try {
       const usuarioId = localStorage.getItem("id");
       const response = await axios.post(
-        `http://localhost:8080/api/chamados?usuarioId=${usuarioId}`,
+        `https://sistema-helpdesk.onrender.com/api/chamados?usuarioId=${usuarioId}`,
         chamadoData,
         {
           headers: {

@@ -31,7 +31,8 @@ export default function AdminDashboard() {
 
   // Configuração do axios para incluir o token no cabeçalho
   const axiosInstance = axios.create({
-    baseURL: "http://localhost:8080/api",
+    //baseURL: "http://localhost:8080/api",
+    baseURL: "https://sistema-helpdesk.onrender.com/api",
     headers: {
       "Authorization": `Bearer ${getAuthToken()}`,
       "Content-Type": "application/json",
